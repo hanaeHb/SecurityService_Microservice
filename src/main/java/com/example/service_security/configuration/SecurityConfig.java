@@ -52,7 +52,10 @@ public class SecurityConfig {
         return new InMemoryUserDetailsManager(
                 User.withUsername("user1").password(passwordEncoder.encode("1234")).authorities("USER").build(),
                 User.withUsername("user2").password(passwordEncoder.encode("1234")).authorities("USER").build(),
-                User.withUsername("user3").password(passwordEncoder.encode("1234")).authorities("ADMIN").build()
+                User.withUsername("user3")
+                        .password(passwordEncoder.encode("1234"))
+                        .authorities("ADMIN")
+                        .build()
         );
     }
 
