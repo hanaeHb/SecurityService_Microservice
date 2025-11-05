@@ -40,8 +40,9 @@ public class API {
        );
 
        //get scope
-        String Scope = authenticate.getAuthorities().stream().map(auth -> authenticate.getName()).collect(Collectors.joining(" "));
-
+        String Scope = authenticate.getAuthorities().stream()
+                .map(auth -> "SCOPE_" + auth.getAuthority()) // USER → SCOPE_USER, ADMIN → SCOPE_ADMIN
+                .collect(Collectors.joining(" "));
        //creation des 2 id token
        //1 - acess token
         JwtClaimsSet jwtClaimsSet_acessToken = JwtClaimsSet.builder()
@@ -82,7 +83,9 @@ public class API {
 
         // creation access token
         //get scope
-        String Scope = userDetails.getAuthorities().stream().map(auth -> userDetails.getUsername()).collect(Collectors.joining(" "));
+        String Scope = userDetails.getAuthorities().stream()
+                .map(auth -> "SCOPE_" + auth.getAuthority())
+                .collect(Collectors.joining(" "));
 
         //creation des 2 id token
         Instant instant = Instant.now();
