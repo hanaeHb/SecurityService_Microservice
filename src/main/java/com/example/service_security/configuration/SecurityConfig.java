@@ -50,11 +50,11 @@ public class SecurityConfig {
     @Bean
     public UserDetailsManager userDetailsManager(){
         return new InMemoryUserDetailsManager(
-                User.withUsername("user1").password(passwordEncoder.encode("1234")).authorities("SCOPE_USER").build(),
-                User.withUsername("user2").password(passwordEncoder.encode("1234")).authorities("SCOPE_USER").build(),
-                User.withUsername("user3")
-                        .password(passwordEncoder.encode("1234"))
-                        .authorities("SCOPE_ADMIN")
+                User.withUsername("user1").password(passwordEncoder.encode("1234")).authorities("USER").build(),
+                User.withUsername("user2").password(passwordEncoder.encode("1234")).authorities("USER").build(),
+                User.withUsername("admin")
+                        .password(passwordEncoder.encode("12345"))
+                        .authorities("ADMIN")
                         .build()
         );
     }

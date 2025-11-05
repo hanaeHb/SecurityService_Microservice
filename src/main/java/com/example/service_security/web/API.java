@@ -41,7 +41,7 @@ public class API {
 
        //get scope
         String Scope = authenticate.getAuthorities().stream()
-                .map(auth -> "SCOPE_" + auth.getAuthority()) // USER → SCOPE_USER, ADMIN → SCOPE_ADMIN
+                .map(auth -> auth.getAuthority())
                 .collect(Collectors.joining(" "));
        //creation des 2 id token
        //1 - acess token
@@ -49,7 +49,7 @@ public class API {
                 .subject(authenticate.getName())
                 .issuer("Security_Service")
                 .issuedAt(instant)
-                .expiresAt(instant.plus(2, ChronoUnit.MINUTES))
+                .expiresAt(instant.plus(200, ChronoUnit.MINUTES))
                 .claim("scope", Scope)
                 .build();
 
@@ -84,7 +84,7 @@ public class API {
         // creation access token
         //get scope
         String Scope = userDetails.getAuthorities().stream()
-                .map(auth -> "SCOPE_" + auth.getAuthority())
+                .map(auth -> auth.getAuthority())
                 .collect(Collectors.joining(" "));
 
         //creation des 2 id token
@@ -94,7 +94,7 @@ public class API {
                 .subject(userDetails.getUsername())
                 .issuer("Security_Service")
                 .issuedAt(instant)
-                .expiresAt(instant.plus(2, ChronoUnit.MINUTES))
+                .expiresAt(instant.plus(200, ChronoUnit.MINUTES))
                 .claim("scope", Scope)
                 .build();
 
