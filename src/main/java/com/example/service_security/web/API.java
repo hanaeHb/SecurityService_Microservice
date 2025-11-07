@@ -1,6 +1,6 @@
 package com.example.service_security.web;
 
-import org.springframework.http.HttpStatus;
+
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -8,6 +8,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.oauth2.jwt.*;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Instant;
@@ -32,77 +33,83 @@ public class API {
     Instant instant = Instant.now();
     private AuthenticationManager authenticationManager;
     @PostMapping("/login")
-    Map<String, String> login(String username, String password){
-        Map<String,String> ID_token = new HashMap<>();
-        //verifier authentification
-       Authentication authenticate = authenticationManager.authenticate(
+    public Map<String, String> login(@RequestParam String username,
+                                     @RequestParam String password) {
+
+        Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(username, password)
-       );
+        );
 
-       //get scope
-        String Scope = authenticate.getAuthorities().stream()
-                .map(auth -> auth.getAuthority())
+        String scope = authentication.getAuthorities().stream()
+                .map(a -> a.getAuthority())
                 .collect(Collectors.joining(" "));
-       //creation des 2 id token
-       //1 - acess token
-        JwtClaimsSet jwtClaimsSet_acessToken = JwtClaimsSet.builder()
-                .subject(authenticate.getName())
+
+        Instant now = Instant.now();
+
+        var claims = JwtClaimsSet.builder()
+                .subject(authentication.getName())
                 .issuer("Security_Service")
-                .issuedAt(instant)
-                .expiresAt(instant.plus(200, ChronoUnit.MINUTES))
-                .claim("scope", Scope)
+                .issuedAt(now)
+                .expiresAt(now.plus(200, ChronoUnit.MINUTES))
+                .claim("scope", scope)
                 .build();
 
-        String Acess_Token = jwtEncoder.encode(JwtEncoderParameters.from(jwtClaimsSet_acessToken)).getTokenValue();
+        String accessToken = jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
 
-        //2- refresh token
-        JwtClaimsSet jwtClaimsSet_refreshToken = JwtClaimsSet.builder()
-                .subject(authenticate.getName())
+        var refreshClaims = JwtClaimsSet.builder()
+                .subject(authentication.getName())
                 .issuer("Security_Service")
-                .issuedAt(instant)
-                .expiresAt(instant.plus(15, ChronoUnit.MINUTES))
+                .issuedAt(now)
+                .expiresAt(now.plus(15, ChronoUnit.MINUTES))
                 .build();
-        String refresh_Token = jwtEncoder.encode(JwtEncoderParameters.from(jwtClaimsSet_refreshToken)).getTokenValue();
-        ID_token.put("Acecess_Token", Acess_Token);
-        ID_token.put("Refresh_token", refresh_Token);
-        return ID_token;
+
+        String refreshToken = jwtEncoder.encode(JwtEncoderParameters.from(refreshClaims)).getTokenValue();
+
+        return Map.of("access_token", accessToken, "refresh_token", refreshToken);
     }
     @PostMapping("/refresh")
-    public Map<String, String> refresh(String refreshToken){
-        Map<String, String> ID_Token = new HashMap<>();
+    public Map<String, String> refresh(@RequestParam String refreshToken) {
+        Map<String, String> tokens = new HashMap<>();
 
-        if(refreshToken == null){
-            ID_Token.put("Error", "Refresh token is null" + HttpStatus.UNAUTHORIZED);
-            return ID_Token;
+        if (refreshToken == null) {
+            tokens.put("Error", "Refresh token is null");
+            return tokens;
         }
 
-        // verifier signature
-        Jwt decoder = jwtDecoder.decode(refreshToken);
-        String username = decoder.getSubject();
-        UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+        try {
+            Jwt decoded = jwtDecoder.decode(refreshToken);
 
-        // creation access token
-        //get scope
-        String Scope = userDetails.getAuthorities().stream()
-                .map(auth -> auth.getAuthority())
-                .collect(Collectors.joining(" "));
+            if (decoded.getExpiresAt().isBefore(Instant.now())) {
+                tokens.put("Error", "Refresh token expired");
+                return tokens;
+            }
 
-        //creation des 2 id token
-        Instant instant = Instant.now();
-        //1 - acess token
-        JwtClaimsSet jwtClaimsSet_acessToken = JwtClaimsSet.builder()
-                .subject(userDetails.getUsername())
-                .issuer("Security_Service")
-                .issuedAt(instant)
-                .expiresAt(instant.plus(200, ChronoUnit.MINUTES))
-                .claim("scope", Scope)
-                .build();
+            String username = decoded.getSubject();
+            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-        String Acess_Token = jwtEncoder.encode(JwtEncoderParameters.from(jwtClaimsSet_acessToken)).getTokenValue();
+            String scope = userDetails.getAuthorities().stream()
+                    .map(auth -> auth.getAuthority())
+                    .collect(Collectors.joining(" "));
 
-        ID_Token.put("Acecess_Token", Acess_Token);
-        ID_Token.put("Refresh_token", refreshToken);
-        return ID_Token;
+            Instant now = Instant.now();
+            JwtClaimsSet accessClaims = JwtClaimsSet.builder()
+                    .subject(userDetails.getUsername())
+                    .issuer("Security_Service")
+                    .issuedAt(now)
+                    .expiresAt(now.plus(200, ChronoUnit.MINUTES))
+                    .claim("scope", scope)
+                    .build();
+
+            String accessToken = jwtEncoder.encode(JwtEncoderParameters.from(accessClaims)).getTokenValue();
+
+            tokens.put("access_token", accessToken);
+            tokens.put("refresh_token", refreshToken);
+        } catch (JwtException e) {
+            tokens.put("Error", "Invalid refresh token");
+        }
+
+        return tokens;
     }
+
 
 }

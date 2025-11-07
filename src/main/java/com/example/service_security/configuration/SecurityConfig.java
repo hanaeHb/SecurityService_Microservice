@@ -1,5 +1,6 @@
 package com.example.service_security.configuration;
 
+import com.example.service_security.service.CustomUserDetailsService;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.RSAKey;
@@ -39,15 +40,16 @@ public class SecurityConfig {
 
 
     @Bean
-    public AuthenticationManager authenticationManagerBean(UserDetailsManager userDetailsManager) throws Exception {
+    public AuthenticationManager authenticationManagerBean(CustomUserDetailsService customUserDetailsService) {
         DaoAuthenticationProvider daoAuthenticationProvider = new DaoAuthenticationProvider();
-        daoAuthenticationProvider.setUserDetailsService(userDetailsManager);
+        daoAuthenticationProvider.setUserDetailsService(customUserDetailsService);
         daoAuthenticationProvider.setPasswordEncoder(passwordEncoder);
         return new ProviderManager(daoAuthenticationProvider);
     }
 
+
     //users in the memory
-    @Bean
+    /*@Bean
     public UserDetailsManager userDetailsManager(){
         return new InMemoryUserDetailsManager(
                 User.withUsername("user1").password(passwordEncoder.encode("1234")).authorities("USER").build(),
@@ -57,7 +59,7 @@ public class SecurityConfig {
                         .authorities("ADMIN")
                         .build()
         );
-    }
+    }*/
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity httpSecurity) throws Exception {
